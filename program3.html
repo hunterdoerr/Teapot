@@ -1,0 +1,190 @@
+<!-- Hunter Doerr doerr034@umn.edu Copyright 2017 -->
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta http-equiv="Content-Type" content="text/html;charset=utf-8" >
+        <title>Programming Assignment 3: Surfaces and Lighting</title>
+
+        <script id="vertex-shader" type="x-shader/x-vertex">
+            varying vec3 R;
+			attribute vec3 vPosition;
+            uniform mat4 modelView;
+            uniform mat4 projection;
+            varying vec4 normalColor;
+            attribute vec3 vNormal;
+            varying vec4 fColor;
+            uniform vec4 ambientProduct, diffuseProduct, specularProduct;
+            uniform vec4 lightPosition;
+            uniform float shininess;
+            uniform vec4 env;
+            varying float toReflect;
+
+            void main()
+            {
+                toReflect = env[0];
+
+                vec3 pos = (modelView * vec4(vPosition,1.0)).xyz;
+                vec3 light = lightPosition.xyz;
+                vec3 L = normalize( light);
+                vec3 E = normalize( -pos );
+                vec3 H = normalize( L + E );
+                vec4 NN = vec4(vNormal,0);
+                vec3 N = normalize( (modelView*NN).xyz);
+
+
+                normalColor = ambientProduct;
+                gl_Position = projection * modelView * vec4(vPosition, 1.0);
+                vec4 ambient = ambientProduct;
+                
+                    float Kd = max( dot(L, N), 0.0 );
+                    vec4  diffuse = Kd*diffuseProduct;
+                
+                    float Ks = pow( max(dot(N, H), 0.0), shininess );
+                    vec4  specular = Ks * specularProduct;
+                    
+                    if( dot(L, N) < 0.0 ) {
+                    specular = vec4(0.0, 0.0, 0.0, 1.0);
+                    } 
+                
+                    fColor = ambient + diffuse +specular;
+                    
+                    fColor.a = 1.0;
+
+                    R = reflect(pos, N);
+            }
+        </script>
+
+        <script id="fragment-shader" type="x-shader/x-fragment">
+            precision mediump float;
+            uniform samplerCube texMap;
+            varying vec4 normalColor;
+            varying vec4 fColor;
+            varying vec3 R;
+            varying float toReflect;
+
+            void main()
+            {
+               if(toReflect < 1.0){
+                    vec4 texColor = textureCube(texMap, R);
+                    gl_FragColor = texColor;//for envmapped
+               }
+                else{  
+                    gl_FragColor = fColor;//non envmapped
+                }
+                			
+            }
+        </script>
+
+        <script type="text/javascript" src="webgl-utils.js"></script>
+        <script type="text/javascript" src="initShaders.js"></script>
+        <script type="text/javascript" src="MV.js"></script>
+		<script type="text/javascript" src="teaSetData.js"></script> 
+        <script type="text/javascript" src="program3.js"></script>
+    </head>
+
+    <body>
+        <canvas id="gl-canvas" width="512" height="512">
+            Oops ... your browser doesn't support the HTML5 canvas element
+        </canvas>
+        <div>
+            Shape:
+            <select id="shape-select">
+                
+                <option value="superellipsoid">Superellipsoid</option>
+                <option value="teapot">Teapot</option>
+            </select>
+        </div>
+		<div>
+            Surface Appearance:
+            <select id="appear-select">
+                <option value="3">Environment Map</option>
+                <option value="1">Yellow Plastic</option>
+                <option value="2">Brass Metal</option>
+            </select>
+        </div>
+        <div>
+            n1: 
+            <select id="superquadric-constant-n1">
+                <option value="10.0">10.0</option>
+                <option value="2.0" selected="selected">2.0</option>
+                <option value="1.11">1.11</option>
+                <option value="0.77">0.77</option>
+                <option value="0.59">0.59</option>
+            </select>
+        </div>
+        <div>
+            n2: 
+            <select id="superquadric-constant-n2">
+                <option value="10.0">10.0</option>
+                <option value="2.0" selected="selected">2.0</option>
+                <option value="1.11">1.11</option>
+                <option value="0.77">0.77</option>
+                <option value="0.59">0.59</option>
+            </select>
+        </div>
+        <div>
+            a: <input id="superquadric-constant-a" type="number" value="1" min="0" max="10" step="0.1" />
+        </div>
+        <div>
+            b: <input id="superquadric-constant-b" type="number" value="1" min="0" max="10" step="0.1" />
+        </div>
+        <div>
+            c: <input id="superquadric-constant-c" type="number" value="1" min="0" max="10" step="0.1" />
+        </div>
+        <div>
+            FOV: <input id="fov" type="number" value="45" min="15" max="90"/>
+        </div>
+
+<!-- Walter Library cubemap -->
+		
+
+		<img id="skyboxrt" src="https://i.imgur.com/8f6JJef.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxup" src="https://i.imgur.com/SwF1qn7.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxbk" src="https://i.imgur.com/EuXKUK0.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxdn" src="https://i.imgur.com/aQ4XBD7.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxfr" src="https://i.imgur.com/wS2Oi6X.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxlf" src="https://i.imgur.com/lJIIZ3h.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+
+ <!-- St. Peter's Basilica cubemap -->
+		
+<!--
+ 		<img id="skyboxrt" src="https://i.imgur.com/mRodxXy.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxup" src="https://i.imgur.com/dLGVMyZ.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxbk" src="https://i.imgur.com/pQj4Z3d.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxdn" src="https://i.imgur.com/Klkg2YC.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxfr" src="https://i.imgur.com/VZkpbE4.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxlf" src="https://i.imgur.com/pIsHJuO.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ -->
+ 
+ <!-- Forest cubemap -->
+ 
+  <!--
+  		<img id="skyboxrt" src="https://i.imgur.com/oNOQZp5.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxup" src="https://i.imgur.com/0odkv2E.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxbk" src="https://i.imgur.com/JVZQdXE.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxdn" src="https://i.imgur.com/RWPgbqj.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxfr" src="https://i.imgur.com/VqU70YX.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ 		<img id="skyboxlf" src="https://i.imgur.com/5AFNOBC.png"
+ crossorigin="anonymous" hidden="hidden" height = 256 width = 256 />
+ -->
+ 
+
+    </body>
+</html>
